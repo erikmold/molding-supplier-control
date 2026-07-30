@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="id" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MORIROKU SUPPLIER CONTROL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        slate: { 850: '#151e2e', 900: '#0f172a' },
+                        brand: { 500: '#3b82f6', 600: '#2563eb' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); }
+        .dark .glass-panel { background: rgba(30, 41, 59, 0.95); border-color: rgba(51, 65, 85, 0.8); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .modal-body-scroll { max-height: calc(100vh - 200px); overflow-y: auto; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; }
+        .dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-900 dark:text-slate-100 h-screen overflow-hidden transition-colors duration-300">
+
+    <div id="login-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-100 dark:bg-slate-900 transition-opacity duration-500">
+        <div class="bg-white dark:bg-slate-800 p-8 rounded-2xl shadow-2xl w-96 transform transition-all text-center">
+            <div class="w-20 h-20 mx-auto bg-brand-500 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-brand-500/30">
+                <i class="fa-solid fa-shield-halved text-4xl text-white"></i>
+            </div>
+            <h1 class="text-2xl font-bold mb-2">Moriroku Supplier</h1>
+            <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm">Masuk untuk mengakses sistem kontrol</p>
+            <form id="form-login" onsubmit="handleLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-sm font-medium mb-1">Username / Kode Akses</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-3 top-3 text-slate-400"></i>
+                        <input type="password" id="login-input" class="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50 dark:bg-slate-700 focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Masukkan sandi..." required>
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-brand-600 hover:bg-brand-500 text-white font-semibold py-2.5 rounded-xl transition-all shadow-md">Masuk <i class="fa-solid fa-arrow-right ml-2"></i></button>
+            </form>
+            <p id="login-error" class="text-red-500 text-sm mt-4 hidden"><i class="fa-solid fa-circle-exclamation mr-1"></i>Kredensial tidak valid.</p>
+        </div>
+    </div>
+
+    <div id="app-layout" class="flex h-screen opacity-0 hidden transition-opacity duration-500">
+        
+        <!-- Sidebar -->
+        <aside class="w-64 bg-slate-800 text-slate-300 flex flex-col transition-all duration-300 shadow-xl z-20 shrink-0">
+            <div class="h-16 flex items-center px-6 font-bold text-white tracking-wider border-b border-slate-700 bg-slate-850">
+                <i class="fa-brands fa-mendeley text-brand-500 text-2xl mr-3"></i>
+                <span id="txt-app-name" class="leading-tight text-sm">MORIROKU SUPPLIER<br>CONTROL</span>
+            </div>
+            <nav class="flex-1 py-6 space-y-2 px-3">
+                <button onclick="navigate('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl bg-brand-600 text-white shadow-lg shadow-brand-500/20 transition-all">
+                    <i class="fa-solid fa-chart-pie w-6"></i> <span id="txt-nav-dash" class="font-medium">Dasbor</span>
+                </button>
+                <button onclick="navigate('mold')" id="nav-mold" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-700 hover:text-white transition-all">
+                    <i class="fa-solid fa-cubes w-6"></i> <span id="txt-nav-mold" class="font-medium">Kontrol Mold</span>
+                </button>
+                <button onclick="navigate('problem')" id="nav-problem" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-700 hover:text-white transition-all">
+                    <i class="fa-solid fa-triangle-exclamation w-6"></i> <span id="txt-nav-prob" class="font-medium">Laporan Masalah</span>
+                </button>
+                <button onclick="navigate('performance')" id="nav-performance" class="nav-btn w-full flex items-center px-4 py-3 rounded-xl hover:bg-slate-700 hover:text-white transition-all">
+                    <i class="fa-solid fa-ranking-star w-6"></i> <span id="txt-nav-perf" class="font-medium">Performa Supplier</span>
+                </button>
+            </nav>
+            <div class="p-4 border-t border-slate-700">
+                <div class="flex items-center space-x-3 p-2 bg-slate-750 rounded-lg">
+                    <div class="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-bold">MM</div>
+                    <div class="overflow-hidden">
+                        <p class="text-sm text-white font-medium truncate">Mold Maintenance</p>
+                        <p id="txt-role" class="text-xs text-slate-400">Administrator</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex flex-col bg-slate-100 dark:bg-slate-850 relative overflow-hidden">
+            <!-- Header -->
+            <header class="h-16 glass-panel border-b px-6 flex items-center justify-between z-10 shrink-0">
+                <h2 id="page-title" class="text-xl font-bold tracking-tight">Ringkasan Sistem</h2>
+                <div class="flex items-center space-x-4">
+                    <select id="filter-year-dash" onchange="updateDashboard()" class="text-sm border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-lg px-2 py-1 outline-none focus:ring-1 focus:ring-brand-500">
+                        <option value="">Semua Waktu</option>
+                    </select>
+                    <select id="lang-select" onchange="changeLang(this.value)" class="text-sm bg-transparent font-medium border-none outline-none cursor-pointer hover:text-brand-500">
+                        <option value="id">ID 🇮🇩</option>
+                        <option value="en">EN 🇬🇧</option>
+                        <option value="ja">JA 🇯🇵</option>
+                    </select>
+                    <button onclick="toggleTheme()" class="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+                        <i id="theme-icon" class="fa-solid fa-moon text-slate-600 dark:text-amber-400"></i>
+                    </button>
+                    <button onclick="logout()" class="w-9 h-9 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center hover:bg-red-200 dark:hover:bg-red-800 transition-colors">
+                        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                    </button>
+                </div>
+            </header>
+
+            <div class="flex-1 overflow-y-auto p-6 hide-scroll relative">
+                
+                <div id="view-dashboard" class="space-y-6 fade-in">
+                    <!-- KPI Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm border-l-4 border-l-purple-500">
+                            <p id="txt-kpi-vendor" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Supplier / Vendor</p>
+                            <h3 id="kpi-vendor" class="text-3xl font-bold">0</h3>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm border-l-4 border-l-blue-500">
+                            <p id="txt-kpi-total" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Inventaris Mold</p>
+                            <h3 id="kpi-mold" class="text-3xl font-bold">0</h3>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm border-l-4 border-l-red-500">
+                            <p id="txt-kpi-open" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Masalah Terbuka</p>
+                            <h3 id="kpi-open" class="text-3xl font-bold text-red-500">0</h3>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm border-l-4 border-l-amber-500">
+                            <p id="txt-kpi-prog" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Dalam Proses (Diproses)</p>
+                            <h3 id="kpi-prog" class="text-3xl font-bold text-amber-500">0</h3>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm border-l-4 border-l-emerald-500">
+                            <p id="txt-kpi-norm" class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Mold Beroperasi Normal</p>
+                            <h3 id="kpi-norm" class="text-3xl font-bold text-emerald-500">0</h3>
+                        </div>
+                    </div>
+                    
+                    <!-- Charts -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm flex flex-col">
+                            <h3 id="txt-chart-vendor" class="font-semibold mb-4 text-slate-700 dark:text-slate-200">Masalah Berdasarkan Vendor</h3>
+                            <div class="relative w-full h-[280px] mt-auto">
+                                <canvas id="chart-vendor"></canvas>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm flex flex-col">
+                            <h3 id="txt-chart-severity" class="font-semibold mb-4 text-slate-700 dark:text-slate-200">Masalah Berdasarkan Keparahan</h3>
+                            <div class="relative w-full h-[280px] mt-auto">
+                                <canvas id="chart-severity"></canvas>
+                            </div>
+                        </div>
+                        <div class="glass-panel p-5 rounded-2xl shadow-sm flex flex-col">
+                            <h3 id="txt-chart-cat" class="font-semibold mb-4 text-slate-700 dark:text-slate-200">Trend Kategori Masalah Terbanyak</h3>
+                            <div class="relative w-full h-[280px] mt-auto">
+                                <canvas id="chart-category"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-mold" class="hidden fade-in space-y-4">
+                    <div class="glass-panel rounded-2xl overflow-hidden shadow-sm">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+                            <h3 class="font-semibold">Database Inventaris Mold</h3>
+                            <button onclick="openModalMold()" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md shadow-brand-500/20 transition-all">
+                                <i class="fa-solid fa-plus mr-1"></i> Tambah Mold
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 dark:bg-slate-700/30 text-slate-500 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <th class="p-4 font-semibold w-24">ID MOLD</th>
+                                        <th class="p-4 font-semibold" id="th-m-model">MODEL</th>
+                                        <th class="p-4 font-semibold" id="th-m-part">NAMA PART</th>
+                                        <th class="p-4 font-semibold" id="th-m-vendor">VENDOR / LOKASI</th>
+                                        <th class="p-4 font-semibold" id="th-m-used">TERAKHIR DIGUNAKAN</th>
+                                        <th class="p-4 font-semibold text-center w-24" id="th-m-action">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700" id="table-mold-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-problem" class="hidden fade-in space-y-4">
+                    <div class="glass-panel rounded-2xl overflow-hidden shadow-sm">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-800/50">
+                            <h3 class="font-semibold whitespace-nowrap">Daftar Log Masalah</h3>
+                            <div class="flex items-center space-x-2 w-full md:w-auto overflow-x-auto hide-scroll pb-1 md:pb-0">
+                                <select id="filter-year-prob" onchange="renderProblemTable()" class="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]">
+                                    <option value="">Semua Waktu</option>
+                                </select>
+                                <select id="filter-status" onchange="renderProblemTable()" class="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm outline-none focus:ring-1 focus:ring-brand-500 min-w-[130px]">
+                                    <option value="">Semua Status</option>
+                                    <option value="Terbuka">Terbuka</option>
+                                    <option value="Diproses">Diproses</option>
+                                    <option value="Selesai">Selesai</option>
+                                </select>
+                                <select id="filter-vendor" onchange="renderProblemTable()" class="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm outline-none focus:ring-1 focus:ring-brand-500 max-w-[150px]">
+                                    <option value="">Semua Vendor</option>
+                                </select>
+                                <button onclick="exportToPDF()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all whitespace-nowrap">
+                                    <i class="fa-solid fa-file-pdf mr-1"></i> Ekspor PDF
+                                </button>
+                                <button onclick="openModalProblem()" class="bg-brand-600 hover:bg-brand-500 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-md transition-all whitespace-nowrap">
+                                    <i class="fa-solid fa-plus mr-1"></i> Lapor Masalah
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm" id="problem-table">
+                                <thead class="bg-slate-50 dark:bg-slate-700/30 text-slate-500 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <th class="p-4 font-semibold w-16">FOTO</th>
+                                        <th class="p-4 font-semibold" id="th-p-part">NAMA PART / KOMPONEN</th>
+                                        <th class="p-4 font-semibold" id="th-p-date">TANGGAL</th>
+                                        <th class="p-4 font-semibold" id="th-p-loc">LOKASI VENDOR & PIC</th>
+                                        <th class="p-4 font-semibold" id="th-p-rep">NAMA SUPPLIER REPAIR</th>
+                                        <th class="p-4 font-semibold max-w-[200px]" id="th-p-desc">DESKRIPSI MASALAH</th>
+                                        <th class="p-4 font-semibold w-24" id="th-p-sev">KEPARAHAN</th>
+                                        <th class="p-4 font-semibold w-24" id="th-p-stat">STATUS</th>
+                                        <th class="p-4 font-semibold text-center w-24" id="th-p-action">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700" id="table-problem-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-performance" class="hidden fade-in space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div class="glass-panel p-4 rounded-2xl flex items-center justify-between border-l-4 border-l-emerald-500">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Supplier Terbaik (Skor Tertinggi)</p>
+                                <h3 id="best-supplier" class="text-xl font-bold text-emerald-600 dark:text-emerald-400">-</h3>
+                            </div>
+                            <i class="fa-solid fa-trophy text-3xl text-emerald-200 dark:text-emerald-800"></i>
+                        </div>
+                        <div class="glass-panel p-4 rounded-2xl flex items-center justify-between border-l-4 border-l-red-500">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Perhatian Khusus (Skor Terendah)</p>
+                                <h3 id="worst-supplier" class="text-xl font-bold text-red-600 dark:text-red-400">-</h3>
+                            </div>
+                            <i class="fa-solid fa-triangle-exclamation text-3xl text-red-200 dark:text-red-900"></i>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel rounded-2xl overflow-hidden shadow-sm">
+                        <div class="p-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50">
+                            <h3 class="font-semibold text-lg">Peringkat & Skor Performa Supplier</h3>
+                            <div class="text-xs text-slate-600 dark:text-slate-400 mt-2 space-y-1">
+                                <p>Skor Awal: <b>100 Poin</b>. Nilai akhir ditentukan berdasarkan kriteria berikut:</p>
+                                <ul class="list-disc ml-4">
+                                    <li><b>Tingkat Kerusakan:</b> Kritis / Mold Nabrak (-30), Tinggi (-15), Sedang (-10), Rendah (-5).</li>
+                                    <li><b>Kecepatan Lead Time (Jika Selesai):</b> Sangat Cepat &le;2 Hari (+5), Terlambat 8-14 Hari (-10), Sangat Terlambat &gt;14 Hari (-20).</li>
+                                    <li><b>Respons Follow Up PIC:</b> Proaktif (+5), Lambat (-10), Buruk / Tidak Kooperatif (-20).</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm">
+                                <thead class="bg-slate-50 dark:bg-slate-700/30 text-slate-500 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700">
+                                    <tr>
+                                        <th class="p-4 font-semibold">NAMA VENDOR / SUPPLIER</th>
+                                        <th class="p-4 font-semibold">TOTAL MASALAH</th>
+                                        <th class="p-4 font-semibold w-1/3">SKOR PERFORMA (MAX 100)</th>
+                                        <th class="p-4 font-semibold">GRADE</th>
+                                        <th class="p-4 font-semibold text-center w-24">AKSI</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-200 dark:divide-slate-700" id="table-perf-body">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300 flex items-center justify-center p-4">
+        
+        <!-- Modal Form Mold -->
+        <div id="modal-mold" class="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl shadow-2xl hidden transform transition-transform scale-95 origin-center">
+            <div class="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-700">
+                <h3 id="title-modal-mold" class="text-lg font-bold">Tambah Mold Baru</h3>
+                <button onclick="closeModal('modal-mold')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            <div class="p-5 modal-body-scroll">
+                <form id="form-mold" class="space-y-4">
+                    <input type="hidden" id="form-mold-action-id">
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Model / Proyek</label>
+                        <input type="text" id="form-mold-model" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Nama Part / Komponen</label>
+                        <input type="text" id="form-mold-name" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Lokasi Vendor / Pemasok</label>
+                        <select id="form-mold-vendor" onchange="checkNewVendor(this.value, 'mold')" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                        </select>
+                        <div id="new-mold-vendor-container" class="mt-2 hidden">
+                            <input type="text" id="new-mold-vendor" placeholder="Ketik nama vendor baru..." class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Terakhir Digunakan</label>
+                        <input type="date" id="form-mold-date" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                    </div>
+                </form>
+            </div>
+            <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-end space-x-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl">
+                <button type="button" onclick="closeModal('modal-mold')" class="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Batal</button>
+                <button type="button" onclick="submitMold()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-medium shadow-md transition-colors">Simpan Data</button>
+            </div>
+        </div>
+
+        <!-- Modal Form Problem -->
+        <div id="modal-problem" class="bg-white dark:bg-slate-800 w-full max-w-lg rounded-2xl shadow-2xl hidden transform transition-transform scale-95 origin-center flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-700 shrink-0">
+                <h3 id="title-modal-problem" class="text-lg font-bold">Form Laporan Masalah Baru</h3>
+                <button onclick="closeModal('modal-problem')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-xl"></i></button>
+            </div>
+            
+            <div class="p-5 overflow-y-auto flex-1 hide-scroll">
+                <form id="form-problem" class="space-y-4">
+                    <input type="hidden" id="form-id">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Vendor / Pemasok</label>
+                            <select id="form-vendor" onchange="updateMoldOptions(); checkNewVendor(this.value, 'prob')" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                            </select>
+                            <div id="new-prob-vendor-container" class="mt-2 hidden">
+                                <input type="text" id="new-prob-vendor" placeholder="Ketik nama vendor baru..." class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Tanggal Kejadian</label>
+                            <input type="date" id="form-date" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Pilih Mold</label>
+                        <select id="form-mold-id" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm disabled:opacity-50" required disabled>
+                            <option value="">Pilih Mold...</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Responsible Repair By</label>
+                            <select id="form-responsible" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                                <option value="">Pilih...</option>
+                                <option value="MORIROKU">MORIROKU</option>
+                                <option value="VENDOR">VENDOR</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Repair By</label>
+                            <select id="form-repair-type" onchange="toggleRepairSupplier()" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                                <option value="Internal">Internal</option>
+                                <option value="Eksternal">Eksternal (3rd Party)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="div-repair-supplier" class="hidden">
+                        <label class="block text-sm font-medium mb-1 text-brand-600 dark:text-brand-400">Nama Supplier Eksternal</label>
+                        <select id="form-repair-supp" onchange="checkNewVendor(this.value, 'rep')" class="w-full px-3 py-2 border border-brand-300 rounded-lg dark:bg-slate-700 dark:border-brand-600 outline-none focus:border-brand-500 text-sm">
+                        </select>
+                        <div id="new-rep-supplier-container" class="mt-2 hidden">
+                            <input type="text" id="new-rep-supplier" placeholder="Ketik nama supplier baru..." class="w-full px-3 py-2 border border-brand-300 rounded-lg dark:bg-slate-700 dark:border-brand-600 outline-none focus:border-brand-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-brand-600 dark:text-brand-400">1. Tingkat Kerusakan (Severity)</label>
+                            <select id="form-severity" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm font-medium">
+                                <option value="Rendah">Rendah (Flashing, Scratch) [-5 Poin]</option>
+                                <option value="Sedang">Sedang (Ejector Macet, Pin Patah) [-10 Poin]</option>
+                                <option value="Tinggi">Tinggi (Core/Cavity Rusak, Leak) [-15 Poin]</option>
+                                <option value="Kritis">Kritis (Mold Nabrak / Broken) [-30 Poin]</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-brand-600 dark:text-brand-400">2. Respons Follow Up PIC (Vendor)</label>
+                            <select id="form-pic-response" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm font-medium">
+                                <option value="Standar" selected>Standar / Normal (0 Poin)</option>
+                                <option value="Proaktif">Proaktif / Sangat Baik (+5 Poin)</option>
+                                <option value="Lambat">Lambat / Perlu Diingatkan Berkali-kali (-10 Poin)</option>
+                                <option value="Buruk">Buruk / Tidak Kooperatif (-20 Poin)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Kategori Masalah Umum</label>
+                        <select id="form-category" onchange="checkNewVendor(this.value, 'cat')" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm" required>
+                        </select>
+                        <div id="new-cat-container" class="mt-2 hidden">
+                            <input type="text" id="new-cat" placeholder="Ketik kategori baru..." class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-1 uppercase text-xs tracking-wider">Foto Masalah (Opsional)</label>
+                        <input type="file" id="form-photo" accept="image/*" class="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 dark:file:bg-slate-700 dark:file:text-slate-200 dark:hover:file:bg-slate-600 transition-all border border-slate-200 dark:border-slate-600 rounded-lg p-1">
+                        <div id="photo-preview-container" class="mt-3 hidden relative w-32 h-32">
+                            <img id="photo-preview" class="w-full h-full object-cover rounded-lg border border-slate-300 shadow-sm" alt="Preview">
+                            <button type="button" onclick="removePhoto()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center shadow-md hover:bg-red-600 transition-colors"><i class="fa-solid fa-xmark text-xs"></i></button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">*Otomatis dikompresi agar sistem tidak berat.</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-1">Deskripsi Masalah</label>
+                        <textarea id="form-desc" rows="3" class="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 outline-none focus:border-blue-500 text-sm resize-none" placeholder="Jelaskan kendala pada mold secara detail..." required></textarea>
+                    </div>
+
+                    <div id="div-status-edit" style="display: none;" class="pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <label class="block text-sm font-medium mb-1 text-amber-600 dark:text-amber-400">Update Status Masalah</label>
+                        <select id="form-status-edit" onchange="toggleDateFinish()" class="w-full px-3 py-2 border border-amber-300 rounded-lg dark:bg-slate-700 dark:border-amber-600 outline-none focus:border-amber-500 text-sm font-bold">
+                            <option value="Terbuka">Terbuka</option>
+                            <option value="Diproses">Diproses</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                    </div>
+                    
+                    <div id="div-date-finish" class="hidden mt-3 bg-emerald-50 dark:bg-emerald-900/20 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                        <label class="block text-sm font-medium mb-1 text-emerald-700 dark:text-emerald-400">3. Tanggal Selesai (Penentu Skor Lead Time)</label>
+                        <input type="date" id="form-date-finish" class="w-full px-3 py-2 border border-emerald-300 rounded-lg dark:bg-slate-700 dark:border-emerald-600 outline-none focus:border-emerald-500 text-sm font-medium">
+                        <p class="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1">*Kecepatan perbaikan sangat mempengaruhi skor (Sangat Cepat +5 Poin, Terlambat hingga -20 Poin).</p>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="p-4 border-t border-slate-100 dark:border-slate-700 flex justify-end space-x-3 bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl shrink-0">
+                <button type="button" onclick="closeModal('modal-problem')" class="px-4 py-2 border rounded-lg text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">Batal</button>
+                <button type="button" onclick="submitProblem()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-medium shadow-md transition-colors">Simpan Laporan</button>
+            </div>
+        </div>
+        
+        <!-- Alerts & Viewers -->
+        <div id="modal-alert" class="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl hidden transform transition-transform scale-95 origin-center text-center p-6 z-50">
+            <div class="w-16 h-16 mx-auto bg-amber-100 dark:bg-amber-900/30 text-amber-500 rounded-full flex items-center justify-center mb-4 text-3xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="alert-title" class="text-lg font-bold mb-2">Peringatan</h3>
+            <p id="alert-message" class="text-sm text-slate-600 dark:text-slate-300 mb-6 whitespace-pre-line"></p>
+            <button onclick="closeAlert()" class="w-full bg-slate-800 dark:bg-slate-600 text-white py-2 rounded-xl font-medium hover:bg-slate-700 dark:hover:bg-slate-500 transition-colors">Mengerti</button>
+        </div>
+
+        <div id="modal-confirm" class="bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl hidden transform transition-transform scale-95 origin-center text-center p-6 z-50">
+            <div class="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-4 text-3xl">
+                <i class="fa-solid fa-trash-can"></i>
+            </div>
+            <h3 class="text-lg font-bold mb-2">Konfirmasi Hapus</h3>
+            <p id="confirm-message" class="text-sm text-slate-600 dark:text-slate-300 mb-6">Yakin ingin menghapus data ini?</p>
+            <div class="flex space-x-3">
+                <button onclick="closeConfirm()" class="flex-1 border border-slate-300 dark:border-slate-600 py-2 rounded-xl font-medium hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">Batal</button>
+                <button id="btn-confirm-action" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-medium hover:bg-red-500 transition-colors">Ya, Hapus</button>
+            </div>
+        </div>
+
+        <div id="modal-image" class="bg-black/90 w-full max-w-3xl rounded-lg hidden transform transition-transform scale-95 origin-center relative flex flex-col items-center justify-center p-2 z-50">
+            <button onclick="closeImage()" class="absolute top-4 right-4 text-white hover:text-red-500 z-50 text-3xl drop-shadow-md"><i class="fa-solid fa-xmark"></i></button>
+            <img id="viewer-img" src="" class="max-w-full max-h-[85vh] object-contain rounded">
+        </div>
+    </div>
+
+    <script>
+        // --- Wipe System (Reset) ---
+        if (localStorage.getItem('data_wiped_final_stable') !== 'true') {
+            localStorage.clear();
+            localStorage.setItem('data_wiped_final_stable', 'true');
+            console.log("Memory successfully cleared for stability.");
+        }
+
+        // --- State Management ---
+        let state = { molds: [], problems: [], vendors: [], repairSuppliers: [], categories: [] };
+        
+        try {
+            state.molds = JSON.parse(localStorage.getItem('moldData')) || [];
+            state.problems = JSON.parse(localStorage.getItem('probData')) || [];
+            state.vendors = JSON.parse(localStorage.getItem('vendorData')) || [];
+            state.repairSuppliers = JSON.parse(localStorage.getItem('repSupplierData')) || [];
+            state.categories = JSON.parse(localStorage.getItem('catData')) || ["PIN BROKEN", "MOLD SCRATCH", "EJECTOR MACET", "WATER LEAK", "FLASHING"];
+        } catch(e) { console.error("Corrupted Memory Detected", e); }
+
+        let currentLang = localStorage.getItem('lang') || 'id';
+        let charts = {};
+        let currentPhotoData = null;
+
+        // I18N Dictionaries
+        const i18n = {
+            id: { appName: "MORIROKU SUPPLIER CONTROL", navDash: "Dasbor", navMold: "Kontrol Mold", navProb: "Laporan Masalah", adminRole: "Administrator", titleDash: "Ringkasan Sistem", titleMold: "Kontrol Inventaris Mold", titleProb: "Manajemen Laporan Masalah", kpiTotal: "Total Inventaris Mold", kpiVendor: "Total Supplier / Vendor", kpiOpen: "Masalah Terbuka", kpiProg: "Dalam Proses (Diproses)", kpiNorm: "Mold Beroperasi Normal", chartVendorTitle: "Masalah Berdasarkan Vendor", chartSeverityTitle: "Masalah Berdasarkan Keparahan", chartCatTitle: "Trend Kategori Masalah Terbanyak", colModel: "MODEL", colPart: "NAMA PART / KOMPONEN", colVendor: "VENDOR / LOKASI", colUsed: "TERAKHIR DIGUNAKAN", colStatus: "STATUS", colAction: "AKSI", colDate: "TANGGAL", colVendorLoc: "LOKASI VENDOR & PIC", colDesc: "DESKRIPSI MASALAH", colSeverity: "KEPARAHAN", colStatusMold: "STATUS", s_rendah: "Rendah", s_sedang: "Sedang", s_tinggi: "Tinggi", s_kritis: "Kritis", st_terbuka: "Terbuka", st_diproses: "Diproses", st_selesai: "Selesai", optAllTime: "Semua Waktu" },
+            en: { appName: "MORIROKU SUPPLIER CONTROL", navDash: "Dashboard", navMold: "Mold Control", navProb: "Problem Report", adminRole: "Administrator", titleDash: "System Overview", titleMold: "Mold Inventory Control", titleProb: "Problem Report Management", kpiTotal: "Total Mold Inventory", kpiVendor: "Total Suppliers / Vendors", kpiOpen: "Open Problems", kpiProg: "In Progress", kpiNorm: "Normal Operating Molds", chartVendorTitle: "Problems by Vendor", chartSeverityTitle: "Problems by Severity", chartCatTitle: "Top Problem Categories Trend", colModel: "MODEL", colPart: "PART / COMPONENT NAME", colVendor: "VENDOR / LOCATION", colUsed: "LAST USED", colStatus: "STATUS", colAction: "ACTION", colDate: "DATE", colVendorLoc: "VENDOR LOCATION & PIC", colDesc: "PROBLEM DESCRIPTION", colSeverity: "SEVERITY", colStatusMold: "STATUS", s_rendah: "Low", s_sedang: "Medium", s_tinggi: "High", s_kritis: "Critical", st_terbuka: "Open", st_diproses: "In Progress", st_selesai: "Closed", optAllTime: "All Time" },
+            ja: { appName: "MORIROKU SUPPLIER CONTROL", navDash: "ダッシュボード", navMold: "金型管理", navProb: "問題報告", adminRole: "管理者", titleDash: "システム概要", titleMold: "金型在庫管理", titleProb: "問題報告管理", kpiTotal: "総金型在庫", kpiVendor: "総サプライヤー/ベンダー", kpiOpen: "未解決の問題", kpiProg: "処理中", kpiNorm: "正常稼働金型", chartVendorTitle: "ベンダー別の問題", chartSeverityTitle: "重要度別の問題", chartCatTitle: "問題カテゴリの傾向", colModel: "モデル", colPart: "部品名", colVendor: "ベンダー／場所", colUsed: "最終使用日", colStatus: "ステータス", colAction: "アクション", colDate: "日付", colVendorLoc: "ベンダーの場所と担当者", colDesc: "問題の説明", colSeverity: "重要度", colStatusMold: "ステータス", s_rendah: "低い", s_sedang: "中", s_tinggi: "高い", s_kritis: "重大", st_terbuka: "未解決", st_diproses: "処理中", st_selesai: "完了", optAllTime: "すべての時間" }
+        };
+
+        // --- STREAMING_CHUNK:Initializing Application Functions... ---
+        function initApp() {
+            populateVendorSelects();
+            populateYearSelects();
+            initCharts();
+            
+            updateDashboard();
+            renderMoldTable();
+            renderProblemTable();
+            renderPerformanceTable();
+            
+            document.getElementById('lang-select').value = currentLang; applyLang();
+            setupPhotoUpload();
+        }
+
+        function initCharts() {
+            Chart.defaults.color = document.documentElement.classList.contains('dark') ? '#94a3b8' : '#475569';
+            Chart.defaults.font.family = 'Inter';
+
+            charts.vendor = new Chart(document.getElementById('chart-vendor').getContext('2d'), {
+                type: 'bar', data: { labels: [], datasets: [{ label: 'Masalah', data: [], backgroundColor: '#3b82f6', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+            charts.severity = new Chart(document.getElementById('chart-severity').getContext('2d'), {
+                type: 'doughnut', data: { labels: [], datasets: [{ data: [], backgroundColor: ['#10b981','#facc15','#fb923c','#ef4444'], borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right' } } }
+            });
+            charts.category = new Chart(document.getElementById('chart-category').getContext('2d'), {
+                type: 'bar', data: { labels: [], datasets: [{ label: 'Frekuensi', data: [], backgroundColor: '#0ea5e9', borderRadius: 4 }] }, options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        // --- STREAMING_CHUNK:Defining Logic Helpers... ---
+        function populateYearSelects() {
+            const years = new Set();
+            state.problems.forEach(p => { if(p.date) years.add(p.date.substring(0, 4)); });
+            const sortedYears = Array.from(years).sort().reverse();
+            ['filter-year-dash', 'filter-year-prob'].forEach(id => {
+                const el = document.getElementById(id); if(!el) return;
+                const currentVal = el.value;
+                el.innerHTML = `<option value="">${i18n[currentLang].optAllTime || 'Semua Waktu'}</option>`;
+                sortedYears.forEach(y => { const opt = document.createElement('option'); opt.value = y; opt.text = y; el.appendChild(opt); });
+                el.value = sortedYears.includes(currentVal) ? currentVal : "";
+            });
+        }
+
+        function populateVendorSelects() {
+            const moldV = document.getElementById('form-mold-vendor');
+            const probV = document.getElementById('form-vendor');
+            const filterV = document.getElementById('filter-vendor');
+            const repV = document.getElementById('form-repair-supp');
+            const catS = document.getElementById('form-category');
+            
+            const mVal = moldV.value, pVal = probV.value, fVal = filterV.value, rVal = repV.value, cVal = catS.value;
+            
+            let vHtml = '<option value="">Pilih Vendor...</option>';
+            state.vendors.forEach(v => { vHtml += `<option value="${v}">${v}</option>`; });
+            vHtml += '<option value="new">+ Input Vendor Baru...</option>';
+            moldV.innerHTML = vHtml; probV.innerHTML = vHtml;
+            
+            filterV.innerHTML = `<option value="">Semua Vendor</option>`;
+            state.vendors.forEach(v => { filterV.innerHTML += `<option value="${v}">${v}</option>`; });
+            
+            repV.innerHTML = '<option value="">Pilih Supplier...</option>';
+            state.repairSuppliers.forEach(v => { repV.innerHTML += `<option value="${v}">${v}</option>`; });
+            repV.innerHTML += '<option value="new">+ Input Supplier Baru...</option>';
+
+            catS.innerHTML = '';
+            state.categories.forEach(c => { catS.innerHTML += `<option value="${c}">${c}</option>`; });
+            catS.innerHTML += '<option value="new">+ Input Kategori Baru...</option>';
+
+            if(state.vendors.includes(mVal)) moldV.value = mVal;
+            if(state.vendors.includes(pVal)) probV.value = pVal;
+            if(state.vendors.includes(fVal)) filterV.value = fVal;
+            if(state.repairSuppliers.includes(rVal)) repV.value = rVal;
+            if(state.categories.includes(cVal)) catS.value = cVal;
+        }
+
+        function checkNewVendor(val, type) {
+            let elId = type === 'mold' ? 'new-mold-vendor-container' : type === 'prob' ? 'new-prob-vendor-container' : type === 'rep' ? 'new-rep-supplier-container' : 'new-cat-container';
+            const c = document.getElementById(elId);
+            if(c) val === 'new' ? c.classList.remove('hidden') : c.classList.add('hidden');
+        }
+
+        // --- STREAMING_CHUNK:Defining Form Handlers... ---
+        function updateMoldOptions() {
+            const vendor = document.getElementById('form-vendor').value;
+            const moldSel = document.getElementById('form-mold-id');
+            moldSel.innerHTML = '<option value="">Pilih Mold...</option>';
+            
+            if (vendor && vendor !== 'new') {
+                const filtered = state.molds.filter(m => m.vendor === vendor);
+                filtered.forEach(m => {
+                    const opt = document.createElement('option'); opt.value = m.id; opt.text = `${m.model} - ${m.name}`; moldSel.appendChild(opt);
+                });
+                moldSel.disabled = false;
+            } else { moldSel.disabled = true; }
+        }
+
+        function toggleRepairSupplier() {
+            const isExt = document.getElementById('form-repair-type').value === 'Eksternal';
+            document.getElementById('div-repair-supplier').classList.toggle('hidden', !isExt);
+        }
+
+        function toggleDateFinish() {
+            const status = document.getElementById('form-status-edit').value;
+            const divDate = document.getElementById('div-date-finish');
+            const inputDate = document.getElementById('form-date-finish');
+            
+            if (status === 'Selesai') {
+                divDate.classList.remove('hidden'); inputDate.setAttribute('required', 'true');
+                if(!inputDate.value) inputDate.value = new Date().toISOString().split('T')[0];
+            } else {
+                divDate.classList.add('hidden'); inputDate.removeAttribute('required'); inputDate.value = '';
+            }
+        }
+
+        function saveData() {
+            try {
+                localStorage.setItem('moldData', JSON.stringify(state.molds));
+                localStorage.setItem('probData', JSON.stringify(state.problems));
+                localStorage.setItem('vendorData', JSON.stringify(state.vendors));
+                localStorage.setItem('repSupplierData', JSON.stringify(state.repairSuppliers));
+                localStorage.setItem('catData', JSON.stringify(state.categories));
+            } catch (e) {
+                showAlert("Penyimpanan Penuh", "Ruang browser penuh karena ukuran foto. Hapus data lama untuk menyimpan.");
+            }
+        }
+
+        // --- STREAMING_CHUNK:Handling Photo Uploads... ---
+        function setupPhotoUpload() {
+            document.getElementById('form-photo').addEventListener('change', function(e) {
+                const file = e.target.files[0]; if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX = 800; let w = img.width, h = img.height;
+                        if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } } else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+                        canvas.width = w; canvas.height = h;
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                        currentPhotoData = canvas.toDataURL('image/jpeg', 0.7); 
+                        document.getElementById('photo-preview').src = currentPhotoData;
+                        document.getElementById('photo-preview-container').classList.remove('hidden');
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+        function removePhoto() {
+            currentPhotoData = null; document.getElementById('form-photo').value = "";
+            document.getElementById('photo-preview-container').classList.add('hidden');
+        }
+
+        // --- STREAMING_CHUNK:Defining Modals and Alerts... ---
+        function openModal(id) {
+            document.getElementById('modal-overlay').classList.remove('hidden');
+            setTimeout(() => { document.getElementById('modal-overlay').style.opacity = '1'; document.getElementById(id).classList.remove('hidden'); setTimeout(() => document.getElementById(id).classList.replace('scale-95', 'scale-100'), 10); }, 10);
+        }
+        function closeModal(id) {
+            document.getElementById(id).classList.replace('scale-100', 'scale-95');
+            setTimeout(() => { document.getElementById(id).classList.add('hidden');
+                if (!document.querySelector('.scale-100:not(.hidden)')) { document.getElementById('modal-overlay').style.opacity = '0'; setTimeout(() => document.getElementById('modal-overlay').classList.add('hidden'), 300); }
+            }, 150);
+        }
+        function showAlert(title, message) {
+            document.getElementById('alert-title').innerText = title; document.getElementById('alert-message').innerText = message;
+            document.getElementById('modal-alert').style.zIndex = "999"; openModal('modal-alert');
+        }
+        function closeAlert() { closeModal('modal-alert'); }
+
+        let deleteAction = null;
+        function confirmDelete(type, id) {
+            document.getElementById('confirm-message').innerText = `Yakin ingin menghapus data ini secara permanen?`;
+            document.getElementById('modal-confirm').style.zIndex = "999"; openModal('modal-confirm');
+            
+            deleteAction = function() {
+                if(type === 'mold') state.molds = state.molds.filter(x => x.id !== id);
+                if(type === 'problem') state.problems = state.problems.filter(x => x.id !== id);
+                if(type === 'vendor') {
+                    state.vendors = state.vendors.filter(x => x !== id);
+                    state.repairSuppliers = state.repairSuppliers.filter(x => x !== id);
+                }
+                saveData(); renderMoldTable(); renderProblemTable(); renderPerformanceTable(); populateVendorSelects(); updateDashboard(); populateYearSelects(); closeConfirm();
+            };
+        }
+        function closeConfirm() { closeModal('modal-confirm'); deleteAction = null; }
+        document.getElementById('btn-confirm-action').onclick = function() { if(deleteAction) deleteAction(); };
+
+        function checkDeleteVendor(vendorName) {
+            if (state.molds.some(m => m.vendor === vendorName) || state.problems.some(p => p.vendor === vendorName)) {
+                showAlert('Gagal Menghapus Supplier', `Supplier "${vendorName}" masih digunakan di data Mold atau Laporan Masalah.\nHarap hapus/pindahkan data terkait terlebih dahulu.`); return;
+            }
+            confirmDelete('vendor', vendorName);
+        }
+
+        // --- STREAMING_CHUNK:Processing Form Submissions... ---
+        function openModalMold() {
+            document.getElementById('form-mold').reset(); document.getElementById('form-mold-action-id').value = '';
+            document.getElementById('title-modal-mold').innerText = 'Tambah Mold Baru';
+            document.getElementById('new-mold-vendor-container').classList.add('hidden'); openModal('modal-mold');
+        }
+
+        function openModalProblem() {
+            if(state.molds.length === 0) { showAlert("Peringatan", "Tambahkan Mold baru di menu Kontrol Mold terlebih dahulu."); return; }
+            document.getElementById('form-problem').reset(); 
+            document.getElementById('form-id').value = '';
+            document.getElementById('title-modal-problem').innerText = 'Form Laporan Masalah Baru';
+            document.getElementById('div-status-edit').style.display = 'none'; 
+            document.getElementById('div-date-finish').classList.add('hidden');
+            document.getElementById('form-date-finish').removeAttribute('required'); 
+            document.getElementById('form-mold-id').disabled = true;
+            document.getElementById('form-mold-id').innerHTML = '<option value="">Pilih Mold...</option>';
+            document.getElementById('form-pic-response').value = 'Standar';
+            
+            removePhoto(); toggleRepairSupplier(); 
+            ['new-prob-vendor', 'new-rep-supplier', 'new-cat'].forEach(idx => { const el = document.getElementById(idx+'-container'); if(el) el.classList.add('hidden'); });
+            openModal('modal-problem');
+        }
+
+        function submitMold() {
+            const form = document.getElementById('form-mold'); if (!form.checkValidity()) { form.reportValidity(); return; }
+            let vendor = document.getElementById('form-mold-vendor').value;
+            if (vendor === 'new') { vendor = document.getElementById('new-mold-vendor').value.trim().toUpperCase(); if(!vendor) return showAlert("Error", "Nama vendor wajib diisi!"); if(!state.vendors.includes(vendor)) state.vendors.push(vendor); }
+            
+            const isEdit = document.getElementById('form-mold-action-id').value;
+            let id = isEdit || ('MLD-' + new Date().getTime().toString().slice(-6) + Math.floor(Math.random() * 100)).toUpperCase();
+            
+            const data = { id: id, model: document.getElementById('form-mold-model').value, name: document.getElementById('form-mold-name').value, vendor: vendor, lastUsed: document.getElementById('form-mold-date').value };
+            if(isEdit) { const idx = state.molds.findIndex(x => x.id === isEdit); if(idx > -1) state.molds[idx] = data; } else { state.molds.push(data); }
+            saveData(); renderMoldTable(); updateDashboard(); populateVendorSelects(); closeModal('modal-mold');
+        }
+
+        function submitProblem() {
+            const form = document.getElementById('form-problem'); if (!form.checkValidity()) { form.reportValidity(); return; }
+            const moldIdVal = document.getElementById('form-mold-id').value; if(!moldIdVal) return showAlert("Peringatan", "Pilih Mold dengan benar.");
+            
+            let vendor = document.getElementById('form-vendor').value;
+            if (vendor === 'new') { vendor = document.getElementById('new-prob-vendor').value.trim().toUpperCase(); if(!vendor) return showAlert("Error", "Nama vendor wajib diisi!"); if(!state.vendors.includes(vendor)) state.vendors.push(vendor); }
+
+            let category = document.getElementById('form-category').value;
+            if (category === 'new') { category = document.getElementById('new-cat').value.trim().toUpperCase(); if(!category) return; if(!state.categories.includes(category)) state.categories.push(category); }
+
+            let repairType = document.getElementById('form-repair-type').value, repSupp = 'Internal';
+            if (repairType === 'Eksternal') {
+                repSupp = document.getElementById('form-repair-supp').value;
+                if(repSupp === 'new') { repSupp = document.getElementById('new-rep-supplier').value.trim().toUpperCase(); if(!repSupp) return; if(!state.repairSuppliers.includes(repSupp)) state.repairSuppliers.push(repSupp); }
+            }
+
+            let id = document.getElementById('form-id').value || ('PRB-' + new Date().getTime().toString().slice(-4));
+            const isEditMode = document.getElementById('div-status-edit').style.display !== 'none';
+            const status = isEditMode ? document.getElementById('form-status-edit').value : 'Terbuka';
+            
+            const data = { 
+                id: id, 
+                date: document.getElementById('form-date').value, 
+                moldId: moldIdVal, 
+                vendor: vendor, 
+                desc: document.getElementById('form-desc').value, 
+                severity: document.getElementById('form-severity').value, 
+                picResponse: document.getElementById('form-pic-response').value,
+                category: category, 
+                responsible: document.getElementById('form-responsible').value, 
+                repairType: repairType, 
+                repairSupplier: repSupp, 
+                photo: currentPhotoData, 
+                status: status, 
+                dateFinish: status === 'Selesai' ? document.getElementById('form-date-finish').value : "" 
+            };
+
+            const existIdx = state.problems.findIndex(x => x.id === id);
+            if(existIdx > -1) state.problems[existIdx] = Object.assign(state.problems[existIdx], data); else state.problems.push(data);
+
+            saveData(); renderProblemTable(); updateDashboard(); populateVendorSelects(); populateYearSelects(); renderPerformanceTable(); closeModal('modal-problem');
+        }
+
+        // --- STREAMING_CHUNK:Handling Edit Events... ---
+        function editMold(id) {
+            const m = state.molds.find(x => x.id === id); if(!m) return;
+            document.getElementById('title-modal-mold').innerText = 'Edit Data Mold';
+            document.getElementById('form-mold-action-id').value = m.id; document.getElementById('form-mold-model').value = m.model; document.getElementById('form-mold-name').value = m.name; document.getElementById('form-mold-vendor').value = m.vendor; document.getElementById('form-mold-date').value = m.lastUsed; document.getElementById('new-mold-vendor-container').classList.add('hidden');
+            openModal('modal-mold');
+        }
+
+        function editProblem(id) {
+            const p = state.problems.find(x => x.id === id); if(!p) return;
+            document.getElementById('title-modal-problem').innerText = 'Edit Laporan Masalah';
+            document.getElementById('form-id').value = p.id; 
+            document.getElementById('form-vendor').value = p.vendor || ''; 
+            updateMoldOptions(); 
+            document.getElementById('form-mold-id').value = p.moldId || ''; 
+            document.getElementById('form-date').value = p.date || new Date().toISOString().split('T')[0]; 
+            document.getElementById('form-severity').value = p.severity || 'Rendah'; 
+            document.getElementById('form-pic-response').value = p.picResponse || 'Standar'; 
+            document.getElementById('form-category').value = p.category || ''; 
+            document.getElementById('form-responsible').value = p.responsible || ''; 
+            document.getElementById('form-repair-type').value = p.repairType || 'Internal'; 
+            toggleRepairSupplier();
+            
+            if(p.repairType === 'Eksternal') document.getElementById('form-repair-supp').value = p.repairSupplier || '';
+            document.getElementById('form-desc').value = p.desc || '';
+            
+            if(p.photo) { currentPhotoData = p.photo; document.getElementById('photo-preview').src = p.photo; document.getElementById('photo-preview-container').classList.remove('hidden'); } else { removePhoto(); }
+
+            document.getElementById('div-status-edit').style.display = 'block'; document.getElementById('form-status-edit').value = p.status || 'Terbuka';
+            
+            if (p.status === 'Selesai') { document.getElementById('div-date-finish').classList.remove('hidden'); document.getElementById('form-date-finish').value = p.dateFinish || ''; document.getElementById('form-date-finish').setAttribute('required', 'true'); } else { document.getElementById('div-date-finish').classList.add('hidden'); document.getElementById('form-date-finish').value = ""; document.getElementById('form-date-finish').removeAttribute('required'); }
+            
+            ['new-prob-vendor', 'new-rep-supplier', 'new-cat'].forEach(idx => { const el = document.getElementById(idx+'-container'); if(el) el.classList.add('hidden'); }); openModal('modal-problem');
+        }
+
+        // --- STREAMING_CHUNK:Rendering Dashboard & Data Tables... ---
+        function navigate(view) {
+            ['dashboard', 'mold', 'problem', 'performance'].forEach(v => {
+                const el = document.getElementById('view-' + v), nav = document.getElementById('nav-' + v);
+                if(el) el.classList.add('hidden');
+                if(nav) { nav.classList.replace('bg-brand-600', 'hover:bg-slate-700'); nav.classList.remove('text-white', 'shadow-lg', 'shadow-brand-500/20'); if(v !== 'dashboard') nav.classList.add('hover:text-white'); }
+            });
+            const activeEl = document.getElementById('view-' + view), activeNav = document.getElementById('nav-' + view);
+            if(activeEl) activeEl.classList.remove('hidden');
+            if(activeNav) { activeNav.classList.replace('hover:bg-slate-700', 'bg-brand-600'); activeNav.classList.add('text-white', 'shadow-lg', 'shadow-brand-500/20'); }
+            
+            let title = '';
+            if(view === 'dashboard') title = i18n[currentLang].titleDash;
+            if(view === 'mold') title = i18n[currentLang].titleMold;
+            if(view === 'problem') title = i18n[currentLang].titleProb;
+            if(view === 'performance') title = "Performa Supplier";
+            document.getElementById('page-title').innerText = title;
+
+            if(view === 'dashboard') updateDashboard();
+        }
+
+        function updateDashboard() {
+            try {
+                const fYear = document.getElementById('filter-year-dash').value;
+                document.getElementById('kpi-mold').innerText = state.molds.length; 
+                document.getElementById('kpi-vendor').innerText = state.vendors.length;
+                
+                let probs = state.problems; 
+                if(fYear) probs = probs.filter(p => p.date && p.date.startsWith(fYear));
+                
+                document.getElementById('kpi-open').innerText = probs.filter(p => (p.status || 'Terbuka') === 'Terbuka').length;
+                document.getElementById('kpi-prog').innerText = probs.filter(p => p.status === 'Diproses').length;
+                const problemMoldIds = [...new Set(probs.filter(p => (p.status || 'Terbuka') !== 'Selesai').map(p => p.moldId))];
+                document.getElementById('kpi-norm').innerText = Math.max(0, state.molds.length - problemMoldIds.length);
+                
+                if (charts.vendor) {
+                    const vCount = {}, sCount = { 'Rendah':0, 'Sedang':0, 'Tinggi':0, 'Kritis':0 }, cCount = {};
+                    probs.forEach(p => { 
+                        vCount[p.vendor || 'Unknown'] = (vCount[p.vendor || 'Unknown'] || 0) + 1; 
+                        sCount[p.severity || 'Rendah']++; 
+                        if(p.category) cCount[p.category] = (cCount[p.category] || 0) + 1; 
+                    });
+                    
+                    const colorPalette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1'];
+                    
+                    const vendorLabels = Object.keys(vCount);
+                    charts.vendor.data.labels = vendorLabels; 
+                    charts.vendor.data.datasets[0].data = Object.values(vCount);
+                    charts.vendor.data.datasets[0].backgroundColor = vendorLabels.map((_, i) => colorPalette[i % colorPalette.length]);
+                    charts.vendor.update();
+                    
+                    charts.severity.data.labels = [i18n[currentLang].s_rendah, i18n[currentLang].s_sedang, i18n[currentLang].s_tinggi, i18n[currentLang].s_kritis]; 
+                    charts.severity.data.datasets[0].data = Object.values(sCount); 
+                    charts.severity.update();
+                    
+                    const sortedCat = Object.keys(cCount).sort((a,b) => cCount[b] - cCount[a]).slice(0,5);
+                    charts.category.data.labels = sortedCat; 
+                    charts.category.data.datasets[0].data = sortedCat.map(c => cCount[c]);
+                    const catPalette = [...colorPalette].reverse(); 
+                    charts.category.data.datasets[0].backgroundColor = sortedCat.map((_, i) => catPalette[i % catPalette.length]);
+                    charts.category.update();
+                }
+            } catch(e) {
+                console.error("Dashboard Render Error:", e);
+            }
+        }
+
+        // --- STREAMING_CHUNK:Rendering Mold Table... ---
+        function renderMoldTable() {
+            try {
+                const tbody = document.getElementById('table-mold-body'); tbody.innerHTML = '';
+                state.molds.forEach(m => {
+                    const mDate = m.lastUsed ? new Date(m.lastUsed).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) : '-';
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <td class="p-4 font-mono text-xs font-semibold text-slate-500">${m.id}</td>
+                            <td class="p-4 font-medium text-brand-600 dark:text-brand-400">${m.model || '-'}</td>
+                            <td class="p-4">${m.name || '-'}</td>
+                            <td class="p-4">${m.vendor || '-'}</td>
+                            <td class="p-4">${mDate}</td>
+                            <td class="p-4 whitespace-nowrap text-center">
+                                <button onclick="editMold(this.getAttribute('data-id'))" data-id="${m.id}" class="text-blue-500 hover:bg-blue-100 p-2 rounded mr-1 transition-colors"><i class="fa-solid fa-pencil"></i></button>
+                                <button onclick="confirmDelete('mold', this.getAttribute('data-id'))" data-id="${m.id}" class="text-red-500 hover:bg-red-100 p-2 rounded transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { console.error("Mold Table Error:", e); }
+        }
+
+        // --- STREAMING_CHUNK:Rendering Problem Table... ---
+        function renderProblemTable() {
+            try {
+                const tbody = document.getElementById('table-problem-body'); tbody.innerHTML = '';
+                const fStatus = document.getElementById('filter-status').value, fVendor = document.getElementById('filter-vendor').value, fYear = document.getElementById('filter-year-prob').value;
+                
+                const filtered = state.problems.filter(p => {
+                    if(fStatus && p.status !== fStatus) return false;
+                    if(fVendor && p.vendor !== fVendor) return false;
+                    if(fYear && p.date && !p.date.startsWith(fYear)) return false;
+                    return true;
+                });
+
+                filtered.sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0)).forEach(p => {
+                    const mold = state.molds.find(m => m.id === p.moldId) || {model: '-', name: 'Mold Terhapus'};
+                    const pSev = p.severity || 'Rendah', pStatus = p.status || 'Terbuka', pDate = p.date || new Date().toISOString().split('T')[0], pDesc = p.desc || '-';
+                    
+                    let sColor = pSev === 'Kritis' ? 'bg-red-100 text-red-600' : pSev === 'Tinggi' ? 'bg-orange-100 text-orange-600' : pSev === 'Sedang' ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600';
+                    let stColor = pStatus === 'Terbuka' ? 'bg-red-500 text-white' : pStatus === 'Diproses' ? 'bg-amber-500 text-white' : 'bg-emerald-500 text-white';
+                    
+                    let photoHtml = p.photo ? `<img src="${p.photo}" class="w-12 h-12 object-cover rounded shadow-sm cursor-pointer hover:opacity-80 border" onclick="viewImage(this.getAttribute('src'))">` : `<div class="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded flex items-center justify-center text-xs text-slate-400">N/A</div>`;
+                    
+                    let dateHtml = `<div class="text-sm font-medium">${new Date(pDate).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'})}</div>`;
+                    if (pStatus === 'Selesai' && p.dateFinish) {
+                        let days = Math.ceil((new Date(p.dateFinish) - new Date(pDate)) / (1000 * 3600 * 24));
+                        let dColor = days <= 2 ? 'text-emerald-500' : (days > 7 ? 'text-red-500' : 'text-blue-500');
+                        dateHtml += `<div class="text-xs ${dColor} mt-1 font-semibold" title="Selesai: ${p.dateFinish}"><i class="fa-solid fa-clock mr-1"></i>LT: ${Math.max(0, days)} Hari</div>`;
+                    }
+                    
+                    let respColor = p.picResponse === 'Proaktif' ? 'text-emerald-500' : (p.picResponse === 'Standar' || !p.picResponse ? 'text-slate-500' : 'text-red-500');
+
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <td class="p-4" data-raw-img="${p.photo ? p.photo : 'No Photo'}">${photoHtml}</td>
+                            <td class="p-4 font-medium text-brand-600 dark:text-brand-400">${mold.name}<div class="text-[11px] text-slate-500 mt-1 uppercase tracking-wide font-bold">${p.category || '-'}</div></td>
+                            <td class="p-4 whitespace-nowrap">${dateHtml}</td>
+                            <td class="p-4 font-medium">${p.vendor || '-'}
+                                <div class="text-[10px] mt-1 ${respColor} font-bold"><i class="fa-solid fa-headset mr-1"></i>PIC: ${p.picResponse || 'Standar'}</div>
+                            </td>
+                            <td class="p-4">${p.repairSupplier || 'Internal'}</td>
+                            <td class="p-4 text-xs">${pDesc.substring(0, 80)}${pDesc.length > 80 ? '...' : ''}</td>
+                            <td class="p-4 whitespace-nowrap"><span class="${sColor} px-2 py-1 rounded-md text-xs font-bold dark:bg-opacity-20">${i18n[currentLang]['s_' + pSev.toLowerCase()] || pSev}</span></td>
+                            <td class="p-4 whitespace-nowrap"><span class="${stColor} px-3 py-1 rounded-full text-xs font-semibold shadow-sm">${i18n[currentLang]['st_' + pStatus.toLowerCase()] || pStatus}</span></td>
+                            <td class="p-4 whitespace-nowrap text-center">
+                                <button onclick="editProblem(this.getAttribute('data-id'))" data-id="${p.id}" class="text-blue-500 hover:bg-blue-100 p-2 rounded mr-1 transition-colors"><i class="fa-solid fa-pencil"></i></button>
+                                <button onclick="confirmDelete('problem', this.getAttribute('data-id'))" data-id="${p.id}" class="text-red-500 hover:bg-red-100 p-2 rounded transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { console.error("Problem Table Error:", e); }
+        }
+
+        // --- STREAMING_CHUNK:Calculating Performance Table... ---
+        function calculateVendorPerformance() {
+            let perf = [];
+            state.vendors.forEach(v => {
+                const probs = state.problems.filter(p => p.vendor === v);
+                let score = 100;
+                
+                probs.forEach(p => {
+                    // 1. Kriteria Tingkat Kerusakan (Severity)
+                    const pSev = p.severity || 'Rendah';
+                    if(pSev === 'Kritis') score -= 30;
+                    else if(pSev === 'Tinggi') score -= 15;
+                    else if(pSev === 'Sedang') score -= 10;
+                    else if(pSev === 'Rendah') score -= 5;
+
+                    // 2. Kriteria Respons PIC
+                    const pResp = p.picResponse || 'Standar';
+                    if (pResp === 'Proaktif') score += 5;
+                    else if (pResp === 'Lambat') score -= 10;
+                    else if (pResp === 'Buruk') score -= 20;
+
+                    // 3. Kriteria Kecepatan Perbaikan (Lead Time)
+                    if (p.status === 'Selesai' && p.dateFinish) {
+                        let days = Math.ceil((new Date(p.dateFinish) - new Date(p.date || 0)) / (1000 * 3600 * 24));
+                        if (!isNaN(days)) { 
+                            if (days <= 2) score += 5; 
+                            else if (days >= 8 && days <= 14) score -= 10; 
+                            else if (days > 14) score -= 20; 
+                        }
+                    }
+                });
+                
+                if (score < 0) score = 0; if (score > 100) score = 100;
+                let grade = 'D (Sangat Kurang)', color = 'bg-red-500';
+                if(score >= 90) { grade = 'A (Sangat Baik)'; color = 'bg-emerald-500'; } 
+                else if(score >= 75) { grade = 'B (Baik)'; color = 'bg-blue-500'; } 
+                else if(score >= 60) { grade = 'C (Cukup)'; color = 'bg-amber-500'; }
+                
+                perf.push({ name: v, total: probs.length, score: score, grade: grade, color: color });
+            });
+            return perf.sort((a,b) => b.score - a.score);
+        }
+
+        function renderPerformanceTable() {
+            try {
+                const tbody = document.getElementById('table-perf-body'); tbody.innerHTML = '';
+                const perfData = calculateVendorPerformance();
+                if (perfData.length > 0) {
+                    document.getElementById('best-supplier').innerText = perfData[0].name; document.getElementById('worst-supplier').innerText = perfData[perfData.length - 1].name;
+                } else {
+                    document.getElementById('best-supplier').innerText = '-'; document.getElementById('worst-supplier').innerText = '-';
+                }
+                perfData.forEach(v => {
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                            <td class="p-4 font-bold text-slate-700 dark:text-slate-200">${v.name}</td>
+                            <td class="p-4"><span class="bg-slate-200 dark:bg-slate-700 px-3 py-1 rounded-lg font-medium">${v.total}</span></td>
+                            <td class="p-4 w-1/3"><div class="flex items-center space-x-3"><span class="font-bold w-8">${v.score}</span><div class="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5"><div class="${v.color} h-2.5 rounded-full" style="width: ${v.score}%"></div></div></div></td>
+                            <td class="p-4 whitespace-nowrap"><span class="${v.color} text-white px-3 py-1 rounded-lg font-black text-sm">${v.grade}</span></td>
+                            <td class="p-4 whitespace-nowrap text-center">
+                                <button onclick="checkDeleteVendor(this.getAttribute('data-name'))" data-name="${v.name}" class="text-red-500 hover:bg-red-100 p-2 rounded transition-colors"><i class="fa-solid fa-trash-can"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { console.error("Performance Table Error:", e); }
+        }
+
+        // --- STREAMING_CHUNK:PDF Export Handler... ---
+        function exportToPDF() {
+            try {
+                const { jsPDF } = window.jspdf; 
+                const doc = new jsPDF('landscape');
+                const lang = i18n[currentLang];
+
+                doc.setFontSize(16);
+                doc.text(lang.titleProb || 'Laporan Masalah Mold', 14, 20);
+
+                const fStatus = document.getElementById('filter-status').value;
+                const fVendor = document.getElementById('filter-vendor').value;
+                const fYear = document.getElementById('filter-year-prob').value;
+
+                const filtered = state.problems.filter(p => {
+                    if(fStatus && p.status !== fStatus) return false;
+                    if(fVendor && p.vendor !== fVendor) return false;
+                    if(fYear && p.date && !p.date.startsWith(fYear)) return false;
+                    return true;
+                }).sort((a,b) => new Date(b.date || 0) - new Date(a.date || 0));
+
+                const tableBody = filtered.map(p => {
+                    const mold = state.molds.find(m => m.id === p.moldId) || {model: '-', name: 'Mold Terhapus'};
+                    let dateStr = p.date ? new Date(p.date).toLocaleDateString('id-ID', {day:'numeric', month:'short', year:'numeric'}) : '-';
+                    if (p.status === 'Selesai' && p.dateFinish) {
+                        dateStr += `\n(Selesai: ${new Date(p.dateFinish).toLocaleDateString('id-ID', {day:'numeric', month:'short'})})`;
+                    }
+                    const partName = `${mold.name}\n[${p.category || '-'}]`;
+                    const sSev = i18n[currentLang]['s_' + (p.severity || 'Rendah').toLowerCase()] || p.severity;
+                    const sStat = i18n[currentLang]['st_' + (p.status || 'Terbuka').toLowerCase()] || p.status;
+                    const vendorInfo = `${p.vendor || '-'}\n(PIC: ${p.picResponse || 'Standar'})`;
+
+                    return [
+                        p.photo ? p.photo : '', 
+                        partName,
+                        dateStr,
+                        vendorInfo,
+                        p.repairSupplier || 'Internal',
+                        p.desc || '-',
+                        sSev,
+                        sStat
+                    ];
+                });
+
+                doc.autoTable({
+                    startY: 28,
+                    head: [[ 'FOTO', lang.colPart, lang.colDate, lang.colVendorLoc, 'REPAIR', lang.colDesc, lang.colSeverity, lang.colStatus ]],
+                    body: tableBody,
+                    didDrawCell: function(data) {
+                        if (data.column.index === 0 && data.section === 'body') {
+                            const imgData = data.cell.raw; 
+                            if (imgData && imgData.startsWith('data:image')) {
+                                const dim = 14; 
+                                const x = data.cell.x + (data.cell.width - dim) / 2;
+                                const y = data.cell.y + (data.cell.height - dim) / 2;
+                                doc.addImage(imgData, 'JPEG', x, y, dim, dim);
+                            }
+                        }
+                    },
+                    didParseCell: function(data) {
+                        if (data.column.index === 0 && data.section === 'body') {
+                            data.cell.text = ['']; 
+                        }
+                    },
+                    styles: { fontSize: 8, cellPadding: 3, valign: 'middle' },
+                    headStyles: { fillColor: [37, 99, 235] },
+                    columnStyles: { 0: { cellWidth: 20, halign: 'center' } },
+                    bodyStyles: { minCellHeight: 20 }
+                });
+
+                doc.save('Report_Masalah_Mold.pdf');
+            } catch(e) {
+                console.error("PDF Export Error:", e);
+                showAlert("Error PDF", "Gagal mengekspor PDF. Pastikan data tidak ada yang korup.");
+            }
+        }
+
+        // --- STREAMING_CHUNK:Finishing Helpers & Theming... ---
+        function viewImage(src) { document.getElementById('viewer-img').src = src; openModal('modal-image'); }
+        function closeImage() { closeModal('modal-image'); }
+
+        function toggleTheme() {
+            const html = document.documentElement, icon = document.getElementById('theme-icon');
+            if (html.classList.contains('dark')) { html.classList.remove('dark'); icon.classList.replace('fa-sun', 'fa-moon'); localStorage.setItem('theme', 'light'); } else { html.classList.add('dark'); icon.classList.replace('fa-moon', 'fa-sun'); localStorage.setItem('theme', 'dark'); }
+            updateDashboard();
+        }
+        
+        function changeLang(l) { currentLang = l; localStorage.setItem('lang', l); applyLang(); populateYearSelects(); }
+        
+        function applyLang() {
+            const l = i18n[currentLang], setTxt = (id, txt) => { if(document.getElementById(id)) document.getElementById(id).innerText = txt; };
+            if(document.getElementById('txt-app-name')) document.getElementById('txt-app-name').innerHTML = l.appName.replace(" ", "<br>");
+            setTxt('txt-nav-dash', l.navDash); setTxt('txt-nav-mold', l.navMold); setTxt('txt-nav-prob', l.navProb); setTxt('txt-role', l.adminRole); setTxt('txt-kpi-total', l.kpiTotal); setTxt('txt-kpi-vendor', l.kpiVendor); setTxt('txt-kpi-open', l.kpiOpen); setTxt('txt-kpi-prog', l.kpiProg); setTxt('txt-kpi-norm', l.kpiNorm); setTxt('txt-chart-vendor', l.chartVendorTitle); setTxt('txt-chart-severity', l.chartSeverityTitle); setTxt('txt-chart-cat', l.chartCatTitle); setTxt('th-m-model', l.colModel); setTxt('th-m-part', l.colPart); setTxt('th-m-vendor', l.colVendorLoc); setTxt('th-m-used', l.colUsed); setTxt('th-m-action', l.colAction); setTxt('th-p-part', l.colPart); setTxt('th-p-date', l.colDate); setTxt('th-p-loc', l.colVendorLoc); setTxt('th-p-desc', l.colDesc); setTxt('th-p-sev', l.colSeverity); setTxt('th-p-stat', l.colStatusMold); setTxt('th-p-action', l.colAction);
+            renderProblemTable(); updateDashboard();
+        }
+
+        // --- STREAMING_CHUNK:Final Authentication Check... ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const val = document.getElementById('login-input').value;
+            if (val === 'moldmtc' || val === 'moldmaintenance') {
+                document.getElementById('login-screen').classList.add('opacity-0');
+                setTimeout(() => { document.getElementById('login-screen').classList.add('hidden'); document.getElementById('app-layout').classList.remove('hidden'); setTimeout(() => document.getElementById('app-layout').classList.remove('opacity-0'), 50); initApp(); }, 500);
+            } else { document.getElementById('login-error').classList.remove('hidden'); setTimeout(() => document.getElementById('login-error').classList.add('hidden'), 3000); }
+        }
+        function logout() { location.reload(); }
+    </script>
+</body>
+</html>
